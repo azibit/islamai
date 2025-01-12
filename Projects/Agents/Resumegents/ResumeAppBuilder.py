@@ -24,63 +24,98 @@ def read_pdf_as_base64(file_path):
         return base64.b64encode(file.read()).decode('utf-8')
 
 
+# @app.route('/parse-resume', methods=['POST'])
+# def parse_resume():
+#     """Endpoint to receive and parse resume PDFs"""
+    
+#     # Validate request has file
+#     if 'resume' not in request.files:
+#         return jsonify({
+#             'status': 'error',
+#             'message': 'No resume file provided'
+#         }), 400
+    
+#     file = request.files['resume']
+    
+#     # Validate filename
+#     if file.filename == '':
+#         return jsonify({
+#             'status': 'error',
+#             'message': 'No selected file'
+#         }), 400
+    
+#     # Validate file type
+#     if not allowed_file(file.filename):
+#         return jsonify({
+#             'status': 'error',
+#             'message': 'File must be a PDF'
+#         }), 400
+
+#     try:
+#         # Save file temporarily
+#         filename = secure_filename(file.filename)
+#         file_path = os.path.join(UPLOAD_FOLDER, filename)
+#         file.save(file_path)
+
+#         # Convert PDF to base64
+#         try:
+#             pdf_base64 = read_pdf_as_base64(file_path)
+#             parsed_data = resumeAgent.parse_resume_with_claude(pdf_base64)
+#             response_data = {
+#                 'status': 'success',
+#                 'data': parsed_data
+#             }
+#             status_code = 200
+
+#             resumeAgent.generate_tailored_latex(parsed_data.json(), job_description)
+
+#         except anthropic.APIError as ae:
+#             response_data = {
+#                 'status': 'error',
+#                 'message': f'Claude API error: {str(ae)}'
+#             }
+#             status_code = 500
+
+#         # Clean up temporary file
+#         os.remove(file_path)
+        
+#         return jsonify(response_data), status_code
+
+#     except Exception as e:
+#         return jsonify({
+#             'status': 'error',
+#             'message': f'Server error: {str(e)}'
+#         }), 500
+
 @app.route('/parse-resume', methods=['POST'])
 def parse_resume():
-    """Endpoint to receive and parse resume PDFs"""
+    """Endpoint to receive base64 PDF and job description"""
     
-    # Validate request has file
-    if 'resume' not in request.files:
+    data = request.get_json()
+    if not data or 'resume_base64' not in data or 'job_description' not in data:
         return jsonify({
             'status': 'error',
-            'message': 'No resume file provided'
-        }), 400
-    
-    file = request.files['resume']
-    
-    # Validate filename
-    if file.filename == '':
-        return jsonify({
-            'status': 'error',
-            'message': 'No selected file'
-        }), 400
-    
-    # Validate file type
-    if not allowed_file(file.filename):
-        return jsonify({
-            'status': 'error',
-            'message': 'File must be a PDF'
+            'message': 'Missing resume_base64 or job_description in request body'
         }), 400
 
     try:
-        # Save file temporarily
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(file_path)
-
-        # Convert PDF to base64
-        try:
-            pdf_base64 = read_pdf_as_base64(file_path)
-            parsed_data = resumeAgent.parse_resume_with_claude(pdf_base64)
-            response_data = {
-                'status': 'success',
-                'data': parsed_data
-            }
-            status_code = 200
-        except anthropic.APIError as ae:
-            response_data = {
-                'status': 'error',
-                'message': f'Claude API error: {str(ae)}'
-            }
-            status_code = 500
-
-        # Clean up temporary file
-        os.remove(file_path)
+        parsed_data = resumeAgent.parse_resume_with_claude(data['resume_base64'])
+        response_data = {
+            'status': 'success',
+            'data': parsed_data
+        }
         
-        return jsonify(response_data), status_code
+        resumeAgent.generate_tailored_latex(parsed_data.json(), data['job_description'])
+        return jsonify(response_data), 200
 
-    except Exception as e:
+    except anthropic.APIError as ae:
         return jsonify({
             'status': 'error',
+            'message': f'Claude API error: {str(ae)}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error', 
             'message': f'Server error: {str(e)}'
         }), 500
 

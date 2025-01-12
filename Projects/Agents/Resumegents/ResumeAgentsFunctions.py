@@ -37,6 +37,13 @@ class ResumeAgentsFunctions:
                 "text": "Extract the structured information from this resume and return it as JSON following the exact format specified:"
             }
         ]
+
+        user_prompt_content = [
+            {
+                "role": "user",
+                "content": user_prompt_content
+            }
+        ]
         
         # Call the model
         return self.call_model(system_prompt, user_prompt_content)
@@ -52,9 +59,7 @@ class ResumeAgentsFunctions:
         Returns:
             dict: Status and LaTeX code or error message
         """
-        
-        client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_KEY_1'))
-        
+            
         # Create prompt
         prompt = f"Here is a job description:\n\n{job_description}\n\n"
         prompt += f"And here is the resume data:\n\n{json.dumps(resume_json, indent=2)}\n\n"
