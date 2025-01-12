@@ -16,7 +16,6 @@ import os
 import base64
 from openai import AzureOpenAI  
 
-
 def call_api_model(prompt_message):
     endpoint = os.getenv("ENDPOINT_URL", "https://aiiionmodelshu1205052997.openai.azure.com/")  
     deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-mini")  
