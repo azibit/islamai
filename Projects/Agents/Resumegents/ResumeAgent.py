@@ -1,7 +1,7 @@
 import anthropic, base64, os, json
 from datetime import datetime
 
-class ResumeAgentsFunctions:
+class ResumeAgent:
     def __init__(self):
         # Configure Anthropic client
         self.client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_KEY_1'))
@@ -63,16 +63,12 @@ class ResumeAgentsFunctions:
         # Create prompt
         prompt = f"Here is a job description:\n\n{job_description}\n\n"
         prompt += f"And here is the resume data:\n\n{json.dumps(resume_json, indent=2)}\n\n"
-        prompt += """Create a complete LaTeX resume that highlights relevant experience for this job. 
-        Update the available information to match the job description. Highlight important part of the job description to match the experience I have gained.
-        The LaTeX code should:
-        1. Use the article document class
-        2. Include necessary packages (geometry, hyperref, etc.)
-        3. Have professional formatting
-        4. Include all relevant sections
-        5. Be ready to compile in Overleaf
+
+        # Load the Prompt to use from the appropriate file
+        with open('PROMPTS/ComplexResumeCreator.md', 'r') as file:
+            complex_resumer_creator = file.read()
         
-        Return ONLY the complete LaTeX code."""
+        prompt += complex_resumer_creator
 
         try:
             system_prompt = "You are an expert resume writer. Create a professional LaTeX resume that highlights relevant experience for the job description. Return only the LaTeX code."
@@ -80,7 +76,7 @@ class ResumeAgentsFunctions:
 
             response = self.call_model(system_prompt, messages)
 
-            latex_code = response.content[0].text.strip()
+            latex_code = response.strip()
             
             # Basic validation
             if not latex_code.startswith('\\documentclass'):
