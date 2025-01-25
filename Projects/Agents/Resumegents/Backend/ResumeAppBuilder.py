@@ -4,6 +4,8 @@ import os
 from ResumeAgent import ResumeAgent
 from flask_cors import CORS
 import logging
+import subprocess
+import tempfile
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -14,11 +16,31 @@ CORS(app)
 
 resumeAgent = ResumeAgent()
 
-# Configure upload settings
-UPLOAD_FOLDER = '/tmp'
-ALLOWED_EXTENSIONS = {'pdf'}
-
-resumeAgent = ResumeAgent()
+def latex_to_pdf(latex_code):
+    """Convert LaTeX code to PDF using pdflatex"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create temporary tex file
+        tex_path = os.path.join(tmpdir, 'resume.tex')
+        with open(tex_path, 'w') as f:
+            f.write(latex_code)
+        
+        # Run pdflatex twice to resolve references
+        for _ in range(2):
+            process = subprocess.Popen(
+                ['pdflatex', '-interaction=nonstopmode', tex_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=tmpdir
+            )
+            process.communicate()
+        
+        # Read the generated PDF
+        pdf_path = os.path.join(tmpdir, 'resume.pdf')
+        if os.path.exists(pdf_path):
+            with open(pdf_path, 'rb') as f:
+                return f.read()
+        else:
+            raise Exception("PDF generation failed")
 
 @app.route('/customize-resume', methods=['POST', 'OPTIONS'])
 def customize_resume():
@@ -41,8 +63,23 @@ def customize_resume():
         # Parse resume with Claude
         parsed_data = resumeAgent.parse_resume_with_claude(data['resume_base64'])
         
-        # Generate PDF
-        pdf_bytes = resumeAgent.generate_tailored_resume(parsed_data, data['job_description'])
+        # Generate LaTeX
+        latex_result = resumeAgent.generate_tailored_latex(parsed_data, data['job_description'])
+        
+        if latex_result['status'] != 'success':
+            return jsonify({
+                'status': 'error',
+                'message': latex_result['message']
+            }), 500
+
+        # Convert LaTeX to PDF
+        try:
+            pdf_bytes = latex_to_pdf(latex_result['latex_code'])
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'PDF conversion failed: {str(e)}'
+            }), 500
         
         # Create response with PDF
         response = make_response(pdf_bytes)
@@ -60,6 +97,4 @@ def customize_resume():
         }), 500
     
 if __name__ == '__main__':
-    # Ensure upload directory exists
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.run(debug=True)

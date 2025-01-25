@@ -1,6 +1,6 @@
 
 
-# To run the backend, go to \islamai\Projects\Agents\Resumegents and run
+# To run the backend, go to \islamai\Projects\Agents\Resumegents\Backend and run
 `` python.exe ResumeAppBuilder.py
 
 
