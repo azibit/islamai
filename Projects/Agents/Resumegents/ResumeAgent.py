@@ -48,22 +48,25 @@ class ResumeAgent:
         # Call the model
         return self.call_model(system_prompt, user_prompt_content)
     
-    def generate_tailored_latex(self, resume_json, job_description, instructions_or_feedback):
+    def generate_tailored_latex(self, original_resume_json, current_editted_resume_json, job_description, instructions_or_feedback):
         """
         Creates LaTeX code for a professionally formatted resume tailored to the job description.
         
         Args:
-            resume_json (dict): Resume data in JSON format
+            original_resume_json (dict): Original resume data in JSON format
+            current_editted_resume_json (dict): Current editted resume data in JSON format
             job_description (str): Target job description
             instructions_or_feedback (str): Instructions or feedback to the agent about the resume
         
         Returns:
             dict: Status and LaTeX code or error message
-        """
-            
+        """            
         # Create prompt
         prompt = f"Here is a job description:\n\n{job_description}\n\n"
-        prompt += f"And here is the resume data:\n\n{json.dumps(resume_json, indent=2)}\n\n"
+        prompt += f"And here is the original resume data:\n\n{json.dumps(original_resume_json, indent=2)}\n\n"
+
+        if current_editted_resume_json:
+            prompt += f"And here is the current editted resume data:\n\n{json.dumps(current_editted_resume_json, indent=2)}. Focus on applying the instructions or feedback provided on the current editted resume data and use the original resume data as a reference.\n\n"
 
         # Add instructions or feedback
         if instructions_or_feedback:
@@ -74,9 +77,15 @@ class ResumeAgent:
             complex_resumer_creator = file.read()
         
         prompt += complex_resumer_creator
-
         try:
-            system_prompt = "You are an expert resume writer. Create a professional LaTeX resume that highlights relevant experience for the job description. Return only the LaTeX code."
+            system_prompt = """
+You are an expert resume writer. Create a professional LaTeX resume that shows the candidate in the best light. 
+Use the resume data provided and the instructions provided to create the resume. 
+NEVER add any new information to the created resume that is not in the original resume data or in the additional instructions provided. 
+
+Always remember - Do not add any resume information that cannot be found or linked to the parsed resume data.
+Return only the LaTeX code.
+            """
             messages = [{"role": "user", "content": prompt}]
 
             response = self.call_model(system_prompt, messages)
