@@ -16,4 +16,5 @@ Important:
 - Do not add any experiences or qualifications that are not in the source data
 - Focus on highlighting existing experiences that match the job requirements
 
+Always remember - Do not add any resume information that cannot be found or linked to the parsed resume data.
 Return ONLY the complete LaTeX code.
