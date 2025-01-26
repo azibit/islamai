@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from datetime import datetime
 import anthropic
 import base64
+ 
 import json
-import os
+import os   
 
 @dataclass
 class Message:
@@ -132,19 +133,19 @@ class MultiturnResumeAgent:
     Based on our conversation, these improvements were suggested:
     {json.dumps(conversation_insights, indent=2)}
 
-    Please create a professional LaTeX resume that:
-    1. Implements the suggested improvements from our conversation
-    2. Highlights experiences most relevant to the job description
-    3. Incorporates any section-specific enhancements we discussed
-    4. Maintains professional formatting and structure
+    IMPORTANT: Create a professional LaTeX resume that STRICTLY follows these rules:
+    1. Use ONLY the information provided in the resume data above and from our conversation ONLY - DO NOT add or fabricate any additional experiences, skills, or qualifications
+    2. You may rephrase or reformat existing content, but must maintain complete factual accuracy
+    3. Maintain professional formatting and structure
 
     {self.prompts['resume_creator']}
 
     Return only the LaTeX code."""
 
-            system_prompt = """You are an expert resume writer. 
-    Create a professional LaTeX resume that incorporates the suggested improvements 
-    from the conversation while highlighting relevant experience for the job description. 
+            system_prompt = """You are an expert resume writer with a strict commitment to accuracy. 
+    Create a professional LaTeX resume using ONLY the information provided in the resume data. 
+    Never add, fabricate, or enhance details beyond what is explicitly stated in the source data. 
+    Focus on optimal presentation of existing information only.
     Return only the LaTeX code."""
 
             messages = [{"role": "user", "content": prompt}]
@@ -188,16 +189,41 @@ class MultiturnResumeAgent:
             'section_specific': {},
             'skills_focus': [],
             'formatting': [],
-            'keywords': []
+            'keywords': [],
+            'model_suggested_changes': [],  # New field for tracking model suggestions
+            'approved_changes': []  # New field for tracking user-approved changes
         }
         
         try:
-            analysis_prompt = """Analyze this conversation history about a resume and extract:
+            analysis_prompt = """Carefully analyze this conversation history about a resume and extract:
     1. General improvements suggested
     2. Section-specific changes
     3. Skills to emphasize
     4. Formatting suggestions
     5. Keywords to include
+    6. Model-suggested changes: Extract specific changes that I (the AI assistant) suggested during our conversation
+    7. Approved changes: Note which suggestions the user explicitly agreed with or approved
+
+    IMPORTANT:
+    - Only include changes that can be made using existing information from the resume
+    - For each suggestion or change, indicate whether it was:
+        a) Suggested by the user
+        b) Suggested by me (the AI assistant)
+        c) Explicitly approved by the user
+    - Do not include suggestions that would require adding new information not present in the original resume
+
+    Return the analysis as a JSON object with the following structure:
+    {
+        "general_improvements": ["improvement1", "improvement2"],
+        "section_specific": {"section_name": ["change1", "change2"]},
+        "skills_focus": ["skill1", "skill2"],
+        "formatting": ["format1", "format2"],
+        "keywords": ["keyword1", "keyword2"],
+        "model_suggested_changes": [
+            {"suggestion": "change description", "status": "approved/pending", "source": "assistant"}
+        ],
+        "approved_changes": ["approved change1", "approved change2"]
+    }
 
     Conversation:
     """
@@ -215,7 +241,10 @@ class MultiturnResumeAgent:
             }]
             
             analysis = self.call_model(
-                system_prompt="You are an expert at analyzing resume discussions. Return results as JSON.",
+                system_prompt="""You are an expert at analyzing resume discussions. 
+                Focus on extracting concrete, actionable changes while maintaining strict accuracy. 
+                Only include changes that work with existing resume information.
+                Return results as properly formatted JSON.""",
                 messages=messages
             )
             

@@ -48,13 +48,14 @@ class ResumeAgent:
         # Call the model
         return self.call_model(system_prompt, user_prompt_content)
     
-    def generate_tailored_latex(self, resume_json, job_description):
+    def generate_tailored_latex(self, resume_json, job_description, instructions_or_feedback):
         """
         Creates LaTeX code for a professionally formatted resume tailored to the job description.
         
         Args:
             resume_json (dict): Resume data in JSON format
             job_description (str): Target job description
+            instructions_or_feedback (str): Instructions or feedback to the agent about the resume
         
         Returns:
             dict: Status and LaTeX code or error message
@@ -63,6 +64,10 @@ class ResumeAgent:
         # Create prompt
         prompt = f"Here is a job description:\n\n{job_description}\n\n"
         prompt += f"And here is the resume data:\n\n{json.dumps(resume_json, indent=2)}\n\n"
+
+        # Add instructions or feedback
+        if instructions_or_feedback:
+            prompt += f"Here is the instructions or feedback to the agent about the resume:\n\n{instructions_or_feedback}\n\n"
 
         # Load the Prompt to use from the appropriate file
         with open('PROMPTS/ComplexResumeCreator.md', 'r') as file:
