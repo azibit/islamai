@@ -32,7 +32,7 @@ def customize_resume():
             'data': parsed_data
         }
         
-        latex_code_resume = resumeAgent.generate_tailored_latex(parsed_data, data['job_description'])
+        latex_code_resume = resumeAgent.generate_tailored_latex(parsed_data, data['job_description'], data['instructions_or_feedback'])
         return jsonify(latex_code_resume), 200
 
     except anthropic.APIError as ae:
